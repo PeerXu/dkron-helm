@@ -1,30 +1,41 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: dkron-server
+  name: {{.Values.name}}-server
   namespace: {{.Values.namespace}}
   labels:
-    app: dkron-server
+    app: {{.Values.name}}-server
     component: server
 spec:
   podManagementPolicy: Parallel
   updateStrategy:
     type: OnDelete # During rolling upgrade kuberenetes don't know who's leader and restarting pods in an order. That may cause multiple failovers. Maybe it's better to check who's leader and manually restart followers, then leader, to have a single failover.
-  serviceName: dkron-server
+  serviceName: {{.Values.name}}-server
   replicas: {{.Values.initialClusterSize}}
   selector:
     matchLabels:
-      app: dkron-server
+      app: {{.Values.name}}-server
       component: server
   template:
     metadata:
-      name: dkron-server
+      name: {{.Values.name}}-server
       labels:
-        app: dkron-server
+        app: {{.Values.name}}-server
         component: server
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: {{.Values.name}}-server
+              namespaces:
+              - {{.Values.namespace}}
+              topologyKey: kubernetes.io/hostname
+            weight: 1
       terminationGracePeriodSeconds: 300
-      serviceAccount: dkron
+      serviceAccount: {{.Values.name}}-sa
       securityContext:
         runAsUser: 0 # TODO. Running as root is a bad idea
       containers:
@@ -89,7 +100,7 @@ spec:
                echo "Waiting for 75 seconds, as it the approximate time to reap left node"
                sleep 75
                echo "Removing self from Raft"
-               /opt/local/dkron/dkron raft remove-peer --peer-id=$(hostname) --rpc-addr="$(wget -q -O - http://dkron-server-leader:8080/v1/leader?pretty=true|jq .Tags.rpc_addr -r)"
+               /opt/local/dkron/dkron raft remove-peer --peer-id=$(hostname) --rpc-addr="$(wget -q -O - http://{{.Values.name}}-server-leader:8080/v1/leader?pretty=true|jq .Tags.rpc_addr -r)"
                echo "Done"
                exit 0
              }
@@ -98,12 +109,12 @@ spec:
               POD_IP=$(hostname -i)
             fi
 
-            FQDN_SUFFIX="{{.Values.statefulSetName}}.{{.Values.namespace}}.svc.cluster.local"
+            FQDN_SUFFIX="{{.Values.name}}-server.{{.Values.namespace}}.svc.cluster.local"
             NODE_NAME="$(hostname -s).${FQDN_SUFFIX}"
 
             JOIN_PEERS=""
             for i in $( seq 0 $(({{.Values.initialClusterSize}} - 1)) ); do
-              JOIN_PEERS="${JOIN_PEERS}${JOIN_PEERS:+ }{{.Values.statefulSetName}}-${i}.${FQDN_SUFFIX}"
+              JOIN_PEERS="${JOIN_PEERS}${JOIN_PEERS:+ }{{.Values.name}}-server-${i}.${FQDN_SUFFIX}"
             done
 
             # Require multiple loops in the case of unstable DNS resolution
@@ -131,7 +142,7 @@ spec:
               sleep 1s
             done
 
-            LEADER=$(wget -q -O - http://dkron-server-leader:8080/v1/leader?pretty=true|jq .Tags.rpc_addr -r)
+            LEADER=$(wget -q -O - http://{{.Values.name}}-server-leader:8080/v1/leader?pretty=true|jq .Tags.rpc_addr -r)
 
             if [ -z "${LEADER}" ]; then
                 BOOTSTRAP_EXPECT="--bootstrap-expect $( echo "$JOIN_PEERS" | wc -w )"

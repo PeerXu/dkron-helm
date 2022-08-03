@@ -1,3 +1,4 @@
+name: dkron
 image: dkron/dkron
 imagePullSecrets: []
 #imagePullSecrets:
@@ -5,4 +6,4 @@ imagePullSecrets: []
 initialClusterSize: 3
 initialWorkers: 2
 namespace: default
-statefulSetName: dkron-server
+tags: {}

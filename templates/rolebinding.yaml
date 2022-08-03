@@ -1,15 +1,15 @@
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: dkron-server
+  name: {{.Values.name}}-server
   namespace: {{.Values.namespace}}
   labels:
-    app: dkron-server
+    app: {{.Values.name}}-server
 subjects:
   - kind: ServiceAccount
-    name: dkron
+    name: {{.Values.name}}-sa
     namespace: {{.Values.namespace}}
 roleRef:
   kind: Role
-  name: dkron-server
+  name: {{.Values.name}}-server
   apiGroup: rbac.authorization.k8s.io

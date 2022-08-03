@@ -1,12 +1,14 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: dkron-worker
+  name: {{.Values.name}}-worker
   namespace: {{.Values.namespace}}
 data:
   dkron.yml: |-
     kubernetes: true
-    retry-join: ["provider=k8s namespace={{.Values.namespace}} label_selector=\"app={{.Values.statefulSetName}}\""]
+    retry-join: ["provider=k8s namespace={{.Values.namespace}} label_selector=\"app={{.Values.name}}-server\""]
     # Uncomment below to set a tag for a worker
+    {{- if .Values.tags}}
     tags:
-      worker: cron
+      {{- toYaml .Values.tags | nindent 6}}
+    {{- end}}

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: dkron
+  name: {{.Values.name}}-sa
   namespace: {{.Values.namespace}}
   labels:
-    app: dkron-server
+    app: {{.Values.name}}-server

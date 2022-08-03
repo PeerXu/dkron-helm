@@ -3,30 +3,41 @@ kind: Deployment
 metadata:
   annotations:
   labels:
-    app: dkron-worker
+    app: {{.Values.name}}-worker
     component: worker
-  name: dkron-worker
+  name: {{.Values.name}}-worker
   namespace: {{.Values.namespace}}
 spec:
   replicas: {{.Values.initialWorkers}}
   selector:
     matchLabels:
-      app: dkron-worker
+      app: {{.Values.name}}-worker
       component: worker
   template:
     metadata:
       labels:
-        app: dkron-worker
+        app: {{.Values.name}}-worker
         component: worker
-      name: dkron-worker
+      name: {{.Values.name}}-worker
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: {{.Values.name}}-worker
+              namespaces:
+              - {{.Values.namespace}}
+              topologyKey: kubernetes.io/hostname
+            weight: 1
       containers:
       - args:
         - agent
         volumeMounts:
         - name: dkron-worker
           mountPath: /opt/local/dkron/config
-        image: dkron/dkron
+        image: {{.Values.image}}
         name: dkron
         ports:
         - containerPort: 8080
@@ -38,9 +49,9 @@ spec:
         - containerPort: 6868
           name: raft
           protocol: TCP
-      serviceAccount: dkron
+      serviceAccount: {{.Values.name}}-sa
       terminationGracePeriodSeconds: 3600 # Max wait time for jobs to be finished, then force kill the pod.
       volumes:
       - name: dkron-worker
         configMap:
-          name: dkron-worker
+          name: {{.Values.name}}-worker
