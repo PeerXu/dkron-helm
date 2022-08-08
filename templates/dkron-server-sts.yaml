@@ -91,7 +91,9 @@ spec:
           - "-c"
           - |
             set -o pipefail
-            
+
+            sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories
+            apk update
             apk add jq
 
             _term() {
@@ -100,7 +102,7 @@ spec:
                echo "Waiting for 75 seconds, as it the approximate time to reap left node"
                sleep 75
                echo "Removing self from Raft"
-               /opt/local/dkron/dkron raft remove-peer --peer-id=$(hostname) --rpc-addr="$(wget -q -O - http://{{.Values.name}}-server-leader:8080/v1/leader?pretty=true|jq .Tags.rpc_addr -r)"
+               /usr/local/bin/dkron raft remove-peer --peer-id=$(hostname) --rpc-addr="$(wget -q -O - http://{{.Values.name}}-server-leader:8080/v1/leader?pretty=true|jq .Tags.rpc_addr -r)"
                echo "Done"
                exit 0
              }
@@ -151,7 +153,7 @@ spec:
             fi
 
             trap _term SIGTERM
-            /opt/local/dkron/dkron agent \
+            /usr/local/bin/dkron agent \
               --server \
               --serf-reconnect-timeout 5s \
               ${BOOTSTRAP_EXPECT} \

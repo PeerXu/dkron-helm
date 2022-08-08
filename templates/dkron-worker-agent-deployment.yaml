@@ -36,7 +36,7 @@ spec:
         - agent
         volumeMounts:
         - name: dkron-worker
-          mountPath: /opt/local/dkron/config
+          mountPath: /root/.dkron
         image: {{.Values.image}}
         name: dkron
         ports:
